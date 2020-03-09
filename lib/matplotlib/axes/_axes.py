@@ -34,6 +34,7 @@ from matplotlib.axes._base import _AxesBase, _process_plot_format
 from matplotlib.axes._secondary_axes import SecondaryAxis
 from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
 
+
 _log = logging.getLogger(__name__)
 
 
@@ -294,10 +295,12 @@ class Axes(_AxesBase):
 
           h, l = ax.get_legend_handles_labels()
           ax.legend(h, l)
+
         """
+
         # pass through to legend.
-        handles, labels = mlegend._get_legend_handles_labels(
-            [self], legend_handler_map)
+        handles, labels = mlegend._get_legend_handles_labels([self],
+                legend_handler_map)
         return handles, labels
 
     @docstring.dedent_interpd
@@ -458,8 +461,9 @@ class Axes(_AxesBase):
         inset_locator = _make_inset_locator(bounds, transform, self)
         bb = inset_locator(None, None)
 
-        inset_ax = Axes(self.figure, bb.bounds, zorder=zorder, label=label,
-                        **kwargs)
+        inset_ax = Axes(self.figure, bb.bounds, zorder=zorder,
+                label=label, **kwargs)
+
         # this locator lets the axes move if in data coordinates.
         # it gets called in `ax.apply_aspect() (of all places)
         inset_ax.set_axes_locator(inset_locator)
@@ -469,8 +473,8 @@ class Axes(_AxesBase):
         return inset_ax
 
     def indicate_inset(self, bounds, inset_ax=None, *, transform=None,
-                       facecolor='none', edgecolor='0.5', alpha=0.5,
-                       zorder=4.99, **kwargs):
+            facecolor='none', edgecolor='0.5', alpha=0.5,
+            zorder=4.99, **kwargs):
         """
         Add an inset indicator to the axes.  This is a rectangle on the plot
         at the position indicated by *bounds* that optionally has lines that
@@ -1267,29 +1271,17 @@ class Axes(_AxesBase):
             The offset of the center of the lines from the origin, in the
             direction orthogonal to *orientation*.
 
-            A sequence must match the dimension of *positions*
-            in the direction of *orientation*.
-
         linelengths : scalar or sequence of scalars, default: 1
             The total height of the lines (i.e. the lines stretches from
             ``lineoffset - linelength/2`` to ``lineoffset + linelength/2``).
-
-            If a sequence, then *positions* must be 2D and the length
-            must match the first dimension of *positions*.
 
         linewidths : scalar, scalar sequence or None, default: None
             The line width(s) of the event lines, in points. If it is None,
             defaults to its rcParams setting.
 
-            If a sequence, then *positions* must be 2D and the length
-            must match the first dimension of *positions*.
-
         colors : color, sequence of colors or None, default: None
             The color(s) of the event lines. If it is None, defaults to its
             rcParams setting.
-
-            If a sequence, then *positions* must be 2D and the length
-            must match the first dimension of *positions*.
 
         linestyles : str or tuple or a sequence of such values, optional
             Default is 'solid'. Valid strings are ['solid', 'dashed',
@@ -1300,10 +1292,6 @@ class Axes(_AxesBase):
 
             where *onoffseq* is an even length tuple of on and off ink
             in points.
-
-            If a sequence, then *positions* must be 2D and the length
-            must match the first dimension of *positions*.
-
 
         **kwargs : optional
             Other keyword arguments are line collection properties.  See
@@ -1978,11 +1966,6 @@ class Axes(_AxesBase):
             The marker for plotting the data points.
             Only used if *usevlines* is ``False``.
 
-        **kwargs
-            Additional parameters are passed to `.Axes.vlines` and
-            `.Axes.axhline` if *usevlines* is ``True``; otherwise they are
-            passed to `.Axes.plot`.
-
         Notes
         -----
         The cross correlation is performed with `numpy.correlate` with
@@ -2051,11 +2034,6 @@ class Axes(_AxesBase):
         marker : str, default: 'o'
             The marker for plotting the data points.
             Only used if *usevlines* is ``False``.
-
-        **kwargs
-            Additional parameters are passed to `.Axes.vlines` and
-            `.Axes.axhline` if *usevlines* is ``True``; otherwise they are
-            passed to `.Axes.plot`.
 
         Notes
         -----
@@ -3224,7 +3202,8 @@ class Axes(_AxesBase):
             # Remove alpha=0 color that _process_plot_format returns
             fmt_style_kwargs.pop('color')
 
-        if ('color' in kwargs or 'color' in fmt_style_kwargs):
+        if ('color' in kwargs or 'color' in fmt_style_kwargs or
+                ecolor is not None):
             base_style = {}
             if 'color' in kwargs:
                 base_style['color'] = kwargs.pop('color')
@@ -3474,6 +3453,7 @@ class Axes(_AxesBase):
 
         return errorbar_container  # (l0, caplines, barcols)
 
+    @cbook._rename_parameter("3.1", "manage_xticks", "manage_ticks")
     @_preprocess_data()
     def boxplot(self, x, notch=None, sym=None, vert=None, whis=None,
                 positions=None, widths=None, patch_artist=None,
@@ -3763,6 +3743,7 @@ class Axes(_AxesBase):
                            manage_ticks=manage_ticks, zorder=zorder)
         return artists
 
+    @cbook._rename_parameter("3.1", "manage_xticks", "manage_ticks")
     def bxp(self, bxpstats, positions=None, widths=None, vert=True,
             patch_artist=False, shownotches=False, showmeans=False,
             showcaps=True, showbox=True, showfliers=True,
@@ -4397,21 +4378,28 @@ default: :rc:`scatter.edgecolors`
 
         """
         # Process **kwargs to handle aliases, conflicts with explicit kwargs:
-
         self._process_unit_info(xdata=x, ydata=y, kwargs=kwargs)
+
+        if self.get_xscale() == 'log':
+            (x,y) = (x[x!=0], y[x!=0])
+        if self.get_yscale() == 'log':
+            (x,y) = (x[y!=0], y[y!=0])
+
         x = self.convert_xunits(x)
-        y = self.convert_yunits(y)
+        y = self.convert_yunits(y)    
 
         # np.ma.ravel yields an ndarray, not a masked array,
         # unless its argument is a masked array.
         x = np.ma.ravel(x)
         y = np.ma.ravel(y)
+
         if x.size != y.size:
             raise ValueError("x and y must be the same size")
-
+        
         if s is None:
             s = (20 if rcParams['_internal.classic_mode'] else
                  rcParams['lines.markersize'] ** 2.0)
+
         s = np.ma.ravel(s)
         if len(s) not in (1, x.size):
             raise ValueError("s must be a scalar, or the same size as x and y")
@@ -4448,7 +4436,6 @@ default: :rc:`scatter.edgecolors`
             linewidths = rcParams['lines.linewidth']
 
         offsets = np.ma.column_stack([x, y])
-
         collection = mcoll.PathCollection(
                 (path,), scales,
                 facecolors=colors,
@@ -4458,6 +4445,7 @@ default: :rc:`scatter.edgecolors`
                 transOffset=kwargs.pop('transform', self.transData),
                 alpha=alpha
                 )
+        
         collection.set_transform(mtransforms.IdentityTransform())
         collection.update(kwargs)
 
@@ -4480,7 +4468,6 @@ default: :rc:`scatter.edgecolors`
 
         self.add_collection(collection)
         self._request_autoscale_view()
-
         return collection
 
     @_preprocess_data(replace_names=["x", "y"], label_namer="y")
@@ -5701,12 +5688,12 @@ default: :rc:`scatter.edgecolors`
                                 ' X (%d) and/or Y (%d); see help(%s)' % (
                                     C.shape, Nx, Ny, funcname))
             if (ncols == Nx or nrows == Ny):
-                cbook.warn_deprecated(
-                    "3.3", message="shading='flat' when X and Y have the same "
-                    "dimensions as C is deprecated since %(since)s.  Either "
-                    "specify the corners of the quadrilaterals with X and Y, "
-                    "or pass shading='auto', 'nearest' or 'gouraud', or set "
-                    "rcParams['pcolor.shading']")
+                cbook.warn_deprecated("3.3",
+                    message="shading='flat' when X and Y have the same "
+                            "dimensions as C is deprecated since %(since)s.  "
+                            "Either specify the corners of the quadrilaterals "
+                            "with X and Y, or pass shading='auto', 'nearest' "
+                            "or 'gouraud', or set rcParams['pcolor.shading']")
             C = C[:Ny - 1, :Nx - 1]
         else:    # ['nearest', 'gouraud']:
             if (Nx, Ny) != (ncols, nrows):
@@ -6324,12 +6311,6 @@ default: :rc:`scatter.edgecolors`
             - `.PcolorImage` for a non-regular rectangular grid.
             - `.QuadMesh` for a non-rectangular grid.
 
-        Other Parameters
-        ----------------
-        **kwargs
-            Supported additional parameters depend on the type of grid.
-            See return types of *image* for further description.
-
         Notes
         -----
         .. [notes section required to get data note injection right]
@@ -6425,25 +6406,9 @@ default: :rc:`scatter.edgecolors`
         return contours
     contourf.__doc__ = mcontour.QuadContourSet._contour_doc
 
-    def clabel(self, CS, levels=None, **kwargs):
-        """
-        Label a contour plot.
-
-        Adds labels to line contours in given `.ContourSet`.
-
-        Parameters
-        ----------
-        CS : `~.ContourSet` instance
-            Line contours to label.
-
-        levels : array-like, optional
-            A list of level values, that should be labeled. The list must be
-            a subset of ``CS.levels``. If not given, all levels are labeled.
-
-        **kwargs
-            All other parameters are documented in `~.ContourLabeler.clabel`.
-        """
-        return CS.clabel(levels, **kwargs)
+    def clabel(self, CS, *args, **kwargs):
+        return CS.clabel(*args, **kwargs)
+    clabel.__doc__ = mcontour.ContourSet.clabel.__doc__
 
     #### Data analysis
 
@@ -6506,22 +6471,22 @@ default: :rc:`scatter.edgecolors`
             range of x.
 
         density : bool, default: False
-            If ``True``, draw and return a probability density: each bin
-            will display the bin's raw count divided by the total number of
-            counts *and the bin width*
-            (``density = counts / (sum(counts) * np.diff(bins))``),
-            so that the area under the histogram integrates to 1
-            (``np.sum(density * np.diff(bins)) == 1``).
+            If ``True``, the first element of the return tuple will
+            be the raw counts per bin normalized to form a probability density
+            so that the area under the histogram will integrate to 1, i.e.
+            ``np.sum(n * np.diff(bins)) == 1``.  (Computed by dividing the
+            raw counts ``n0`` by the total number of data points and
+            multiplying by the bin width: ``n = n0 / sum(n0) * np.diff(bins)``)
 
             If *stacked* is also ``True``, the sum of the histograms is
             normalized to 1.
 
         weights : (n,) array-like or None, default: None
-            An array of weights, of the same shape as *x*.  Each value in
-            *x* only contributes its associated weight towards the bin count
-            (instead of 1).  If *density* is ``True``, the weights are
-            normalized, so that the integral of the density over the range
-            remains 1.
+            An array of weights, of the same shape as *x*.  Each value in *x*
+            only contributes its associated weight towards the bin count
+            (instead of 1).  If *normed* or *density* is ``True``,
+            the weights are normalized, so that the integral of the density
+            over the range remains 1.
 
             This parameter can be used to draw a histogram of data that has
             already been binned, e.g. using `numpy.histogram` (by treating each
@@ -6621,8 +6586,7 @@ default: :rc:`scatter.edgecolors`
 
         Other Parameters
         ----------------
-        **kwargs
-            `~matplotlib.patches.Patch` properties
+        **kwargs : `~matplotlib.patches.Patch` properties
 
         See also
         --------
@@ -6915,7 +6879,7 @@ default: :rc:`scatter.edgecolors`
             return tops, bins, cbook.silent_list('Lists of Patches', patches)
 
     @_preprocess_data(replace_names=["x", "y", "weights"])
-    @docstring.dedent_interpd
+    @cbook._rename_parameter("3.1", "normed", "density")
     def hist2d(self, x, y, bins=10, range=None, density=False, weights=None,
                cmin=None, cmax=None, **kwargs):
         """
@@ -6948,8 +6912,8 @@ default: :rc:`scatter.edgecolors`
             considered outliers and not tallied in the histogram.
 
         density : bool, default: False
-            Normalize histogram.  See the documentation for the *density*
-            parameter of `~.Axes.hist` for more details.
+            Normalize histogram.  *normed* is a deprecated synonym for this
+            parameter.
 
         weights : array-like, shape (n, ), optional
             An array of values w_i weighing each sample (x_i, y_i).
@@ -6992,11 +6956,6 @@ default: :rc:`scatter.edgecolors`
         alpha : ``0 <= scalar <= 1`` or ``None``, optional
             The alpha blending value.
 
-        **kwargs
-            Additional parameters are passed along to the
-            `~.Axes.pcolormesh` method and `~matplotlib.collections.QuadMesh`
-            constructor.
-
         See also
         --------
         hist : 1D histogram plotting
@@ -7013,7 +6972,7 @@ default: :rc:`scatter.edgecolors`
         """
 
         h, xedges, yedges = np.histogram2d(x, y, bins=bins, range=range,
-                                           density=density, weights=weights)
+                                           normed=density, weights=weights)
 
         if cmin is not None:
             h[h < cmin] = None
@@ -7844,10 +7803,12 @@ default: :rc:`scatter.edgecolors`
         self.title.set_y(1.05)
         self.xaxis.tick_top()
         self.xaxis.set_ticks_position('both')
-        self.xaxis.set_major_locator(
-            mticker.MaxNLocator(nbins=9, steps=[1, 2, 5, 10], integer=True))
-        self.yaxis.set_major_locator(
-            mticker.MaxNLocator(nbins=9, steps=[1, 2, 5, 10], integer=True))
+        self.xaxis.set_major_locator(mticker.MaxNLocator(nbins=9,
+                                                 steps=[1, 2, 5, 10],
+                                                 integer=True))
+        self.yaxis.set_major_locator(mticker.MaxNLocator(nbins=9,
+                                                 steps=[1, 2, 5, 10],
+                                                 integer=True))
         return im
 
     @_preprocess_data(replace_names=["dataset"])
