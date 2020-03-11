@@ -27,6 +27,7 @@ from matplotlib.rcsetup import (validate_bool_maybe_none,
                                 validate_hist_bins,
                                 validate_markevery,
                                 _validate_linestyle)
+from matplotlib.testing.decorators import check_figures_equal 
 
 
 def test_rcparams(tmpdir):
