@@ -24,7 +24,6 @@ import re
 
 import numpy as np
 
-import matplotlib as mpl
 from matplotlib import animation, cbook
 from matplotlib.cbook import ls_mapper
 from matplotlib.fontconfig_pattern import parse_fontconfig_pattern
@@ -140,6 +139,7 @@ def validate_bool(b):
         raise ValueError('Could not convert "%s" to bool' % b)
 
 
+@cbook.deprecated("3.3")
 def validate_bool_maybe_none(b):
     """Convert b to ``bool`` or raise, passing through *None*."""
     if isinstance(b, str):
@@ -322,18 +322,9 @@ def validate_color_or_auto(s):
 
 
 def validate_color_for_prop_cycle(s):
-    # Special-case the N-th color cycle syntax, this obviously can not
-    # go in the color cycle.
-    if isinstance(s, bytes):
-        match = re.match(b'^C[0-9]$', s)
-        if match is not None:
-            raise ValueError('Can not put cycle reference ({cn!r}) in '
-                             'prop_cycler'.format(cn=s))
-    elif isinstance(s, str):
-        match = re.match('^C[0-9]$', s)
-        if match is not None:
-            raise ValueError('Can not put cycle reference ({cn!r}) in '
-                             'prop_cycler'.format(cn=s))
+    # N-th color cycle syntax can't go into the color cycle.
+    if isinstance(s, str) and re.match("^C[0-9]$", s):
+        raise ValueError(f"Cannot put cycle reference ({s!r}) in prop_cycler")
     return validate_color(s)
 
 
@@ -524,24 +515,8 @@ def validate_ps_distiller(s):
         s = s.lower()
     if s in ('none', None, 'false', False):
         return None
-    elif s in ('ghostscript', 'xpdf'):
-        try:
-            mpl._get_executable_info("gs")
-        except mpl.ExecutableNotFoundError:
-            _log.warning("Setting rcParams['ps.usedistiller'] requires "
-                         "ghostscript.")
-            return None
-        if s == "xpdf":
-            try:
-                mpl._get_executable_info("pdftops")
-            except mpl.ExecutableNotFoundError:
-                _log.warning("Setting rcParams['ps.usedistiller'] to 'xpdf' "
-                             "requires xpdf.")
-                return None
-        return s
     else:
-        raise ValueError('matplotlibrc ps.usedistiller must either be none, '
-                         'ghostscript or xpdf')
+        return ValidateInStrings('ps.usedistiller', ['ghostscript', 'xpdf'])(s)
 
 
 # A validator dedicated to the named line styles, based on the items in
@@ -579,12 +554,18 @@ def _validate_linestyle(ls):
             and _is_iterable_not_string_like(ls[1])
             and len(ls[1]) % 2 == 0
             and all(isinstance(elem, Number) for elem in ls[1])):
+        if ls[0] is None:
+            cbook.warn_deprecated(
+                "3.3", message="Passing the dash offset as None is deprecated "
+                "since %(since)s and support for it will be removed "
+                "%(removal)s; pass it as zero instead.")
+            ls = (0, ls[1])
         return ls
     # For backcompat: (on, off, on, off, ...); the offset is implicitly None.
     if (_is_iterable_not_string_like(ls)
             and len(ls) % 2 == 0
             and all(isinstance(elem, Number) for elem in ls)):
-        return (None, ls)
+        return (0, ls)
     raise ValueError(f"linestyle {ls!r} is not a valid on-off ink sequence.")
 
 
@@ -683,7 +664,13 @@ validate_svg_fonttype = ValidateInStrings(
     'svg.fonttype', ['none', 'path'], _deprecated_since="3.3")
 
 
+@cbook.deprecated("3.3")
 def validate_hinting(s):
+    return _validate_hinting(s)
+
+
+# Replace by plain list in _prop_validators after deprecation period.
+def _validate_hinting(s):
     if s in (True, False):
         cbook.warn_deprecated(
             "3.2", message="Support for setting the text.hinting rcParam to "
@@ -700,6 +687,7 @@ validate_pgf_texsystem = ValidateInStrings(
     _deprecated_since="3.3")
 
 
+@cbook.deprecated("3.3")
 def validate_movie_writer(s):
     # writers.list() would only list actually available writers, but
     # FFMpeg.isAvailable is slow and not worth paying for at every import.
@@ -738,13 +726,10 @@ def validate_sketch(s):
         s = s.lower()
     if s == 'none' or s is None:
         return None
-    if isinstance(s, str):
-        result = tuple([float(v.strip()) for v in s.split(',')])
-    elif isinstance(s, (list, tuple)):
-        result = tuple([float(v) for v in s])
-    if len(result) != 3:
-        raise ValueError("path.sketch must be a tuple (scale, length, randomness)")
-    return result
+    try:
+        return tuple(validate_nseq_float(3)(s))
+    except ValueError:
+        raise ValueError("Expected a (scale, length, randomness) triplet")
 
 
 def _validate_greaterequal0_lessthan1(s):
@@ -1170,7 +1155,7 @@ defaultParams = {
     'text.usetex':         [False, validate_bool],
     'text.latex.preamble': ['', _validate_tex_preamble],
     'text.latex.preview':  [False, validate_bool],
-    'text.hinting':        ['auto', validate_hinting],
+    'text.hinting':        ['auto', _validate_hinting],
     'text.hinting_factor': [8, validate_int],
     'text.kerning_factor': [0, validate_int],
     'text.antialiased':    [True, validate_bool],
@@ -1490,7 +1475,7 @@ defaultParams = {
     # Limit, in MB, of size of base64 encoded animation in HTML
     # (i.e. IPython notebook)
     'animation.embed_limit':  [20, validate_float],
-    'animation.writer':       ['ffmpeg', validate_movie_writer],
+    'animation.writer':       ['ffmpeg', validate_string],
     'animation.codec':        ['h264', validate_string],
     'animation.bitrate':      [-1, validate_int],
     # Controls image format when frames are written to disk

@@ -126,9 +126,8 @@ def test_Bug_2543():
         # real test is that this does not raise
         assert validate_bool_maybe_none(None) is None
         assert validate_bool_maybe_none("none") is None
-
-    with pytest.raises(ValueError):
-        validate_bool_maybe_none("blah")
+        with pytest.raises(ValueError):
+            validate_bool_maybe_none("blah")
     with pytest.raises(ValueError):
         validate_bool(None)
     with pytest.raises(ValueError):
@@ -371,10 +370,9 @@ def generate_validator_testcases(valid):
                      ('', ''), (' ', ' '),
                      ('None', 'none'), ('none', 'none'),
                      ('DoTtEd', 'dotted'),  # case-insensitive
-                     ('1, 3', (None, (1, 3))),
-                     ([1.23, 456], (None, [1.23, 456.0])),
-                     ([1, 2, 3, 4], (None, [1.0, 2.0, 3.0, 4.0])),
-                     ((None, [1, 2]), (None, [1, 2])),
+                     ('1, 3', (0, (1, 3))),
+                     ([1.23, 456], (0, [1.23, 456.0])),
+                     ([1, 2, 3, 4], (0, [1.0, 2.0, 3.0, 4.0])),
                      ((0, [1, 2]), (0, [1, 2])),
                      ((-1, [1, 2]), (-1, [1, 2])),
                      ),

@@ -142,8 +142,13 @@ Setting a `.Line2D`\'s pickradius (i.e. the tolerance for pick events
 and containment checks) via `.Line2D.set_picker` is deprecated.  Use
 `.Line2D.set_pickradius` instead.
 
-`.Line2D.set_picker` no longer sets the artist's custom-contain() check.  Use
-``Line2D.set_contains`` instead.
+`.Line2D.set_picker` no longer sets the artist's custom-contain() check.
+
+``Artist.set_contains``, ``Artist.get_contains``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Setting a custom method overridding `.Artist.contains` is deprecated.
+There is no replacement, but you may still customize pick events using
+`.Artist.set_picker`.
 
 `~matplotlib.colorbar.Colorbar` methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -220,9 +225,11 @@ The following validators, defined in `.rcsetup`, are deprecated:
 ``validate_movie_frame_fmt``, ``validate_axis_locator``,
 ``validate_movie_html_fmt``, ``validate_grid_axis``,
 ``validate_axes_titlelocation``, ``validate_toolbar``,
-``validate_ps_papersize``, ``validate_legend_log``.  To test whether an rcParam
-value would be acceptable, one can test e.g. ``rc = RcParams(); rc[k] = v``
-raises an exception.
+``validate_ps_papersize``, ``validate_legend_loc``,
+``validate_bool_maybe_none``, ``validate_hinting``,
+``validate_movie_writers``.
+To test whether an rcParam value would be acceptable, one can test e.g. ``rc =
+RcParams(); rc[k] = v`` raises an exception.
 
 Stricter rcParam validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -247,3 +254,33 @@ mathtext glues
 ~~~~~~~~~~~~~~
 The *copy* parameter of ``mathtext.Glue`` is deprecated (the underlying glue
 spec is now immutable).  ``mathtext.GlueSpec`` is deprecated.
+
+Signatures of `.Artist.draw` and `.Axes.draw`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The *inframe* parameter to `.Axes.draw` is deprecated.  Use
+`.Axes.redraw_in_frame` instead.
+
+Not passing the *renderer* parameter to `.Axes.draw` is deprecated.  Use
+``axes.draw_artist(axes)`` instead.
+
+These changes make the signature of the ``draw`` (``artist.draw(renderer)``)
+method consistent across all artists; thus, additional parameters to
+`.Artist.draw` are deprecated.
+
+``DraggableBase.on_motion_blit``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This method is deprecated.  `.DraggableBase.on_motion` now handles both the
+blitting and the non-blitting cases.
+
+Passing the dash offset as None
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Fine control of dash patterns can be achieved by passing an ``(offset,
+(on-length, off-length, on-length, off-length, ...))`` pair as the linestyle
+property of `.Line2D` and `.LineCollection`.  Previously, certain APIs would
+accept ``offset = None`` as a synonym for ``offset = 0``, but this was never
+universally implemented, e.g. for vector output.  Support for ``offset = None``
+is deprecated, set the offset to 0 instead.
+
+``RendererCairo.fontweights``, ``RendererCairo.fontangles``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+... are deprecated.

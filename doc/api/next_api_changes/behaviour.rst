@@ -101,3 +101,19 @@ deprecation warning.
 Previously setting the *ecolor* would turn off automatic color cycling for the plot, leading to the 
 the lines and markers defaulting to whatever the first color in the color cycle was in the case of 
 multiple plot calls. 
+
+`.rcsetup.validate_color_for_prop_cycle` now always raises TypeError for bytes input
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+It previously raised `TypeError`, **except** when the input was of the form
+``b"C[number]"`` in which case it raised a ValueError.
+
+`.FigureCanvasPS.print_ps` and `.FigureCanvasPS.print_eps` no longer apply edgecolor and facecolor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These methods now assume that the figure edge and facecolor have been correctly
+applied by `.FigureCanvasBase.print_figure`, as they are normally called
+through it.
+
+This behavior is consistent with other figure saving methods
+(`.FigureCanvasAgg.print_png`, `.FigureCanvasPdf.print_pdf`,
+`.FigureCanvasSVG.print_svg`).
