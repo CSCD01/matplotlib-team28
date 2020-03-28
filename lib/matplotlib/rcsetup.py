@@ -1470,6 +1470,7 @@ defaultParams = {
     'keymap.all_axes':     [['a'], validate_stringlist],
     'keymap.help':         [['f1'], validate_stringlist],
     'keymap.copy':         [['ctrl+c', 'cmd+c'], validate_stringlist],
+    'keymap.legend':       [['t'], validate_stringlist],
 
     # Animation settings
     'animation.html':         ['none', ['html5', 'jshtml', 'none']],

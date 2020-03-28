@@ -2332,6 +2332,7 @@ def key_press_handler(event, canvas, toolbar=None):
     pan_keys = rcParams['keymap.pan']
     zoom_keys = rcParams['keymap.zoom']
     save_keys = rcParams['keymap.save']
+    legend_keys = rcParams['keymap.legend']
     quit_keys = rcParams['keymap.quit']
     quit_all_keys = rcParams['keymap.quit_all']
     grid_keys = rcParams['keymap.grid']
@@ -2375,6 +2376,8 @@ def key_press_handler(event, canvas, toolbar=None):
         # saving current figure (default key 's')
         elif event.key in save_keys:
             toolbar.save_figure()
+        elif event.key in legend_keys:
+            toolbar.toggle_legend()
 
     if event.inaxes is None:
         return
@@ -2691,6 +2694,7 @@ class NavigationToolbar2:
         ('Subplots', 'Configure subplots', 'subplots', 'configure_subplots'),
         (None, None, None, None),
         ('Save', 'Save the figure', 'filesave', 'save_figure'),
+        ('Legend', 'Toggle Legend', 'test', 'toggle_legend'),
       )
 
     def __init__(self, canvas):
@@ -2712,6 +2716,9 @@ class NavigationToolbar2:
 
         self.mode = ''  # a mode string for the status bar
         self.set_history_buttons()
+
+    def toggle_legend(self):
+        print(self.canvas.figure.get_axes()[0])
 
     def set_message(self, s):
         """Display a message on toolbar or in status bar."""
