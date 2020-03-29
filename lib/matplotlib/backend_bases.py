@@ -3109,6 +3109,16 @@ class NavigationToolbar2:
         called e.g. before a long-running task during which the GUI is not
         updated.
         """
+    
+    def toggle_legend(self):
+        ax = self.canvas.figure.get_axes()[0]
+        if (ax.get_legend() is not None):
+            legend = ax.get_legend()
+            if (legend.get_visible()):
+                legend.set_visible(False)
+            else:
+                legend.set_visible(True)
+        self.draw()
 
     def update(self):
         """Reset the axes stack."""
