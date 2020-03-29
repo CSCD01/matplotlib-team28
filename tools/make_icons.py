@@ -88,7 +88,11 @@ icon_defs = [
     ('subplots', 0xf1de),
     ('qt4_editor_options', 0xf201),
     ('help', 0xf128),
+<<<<<<< HEAD
     ('test', 0xf2c6)
+=======
+    ('toggle_legend', 0xf03a)
+>>>>>>> origin/11109-create-legend-button-images
 ]
 
 

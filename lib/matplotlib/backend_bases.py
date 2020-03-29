@@ -711,7 +711,7 @@ class GraphicsContextBase:
         self._capstyle = 'butt'
         self._cliprect = None
         self._clippath = None
-        self._dashes = 0, None
+        self._dashes = None, None
         self._joinstyle = 'round'
         self._linestyle = 'solid'
         self._linewidth = 1
@@ -1537,8 +1537,8 @@ def _is_non_interactive_terminal_ipython(ip):
     interactive), we do.
     """
     return (hasattr(ip, 'parent')
-            and (ip.parent is not None)
-            and getattr(ip.parent, 'interact', None) is False)
+        and (ip.parent is not None)
+        and getattr(ip.parent, 'interact', None) is False)
 
 
 class FigureCanvasBase:
@@ -2079,11 +2079,22 @@ class FigureCanvasBase:
                             print_method, dpi=dpi, orientation=orientation),
                         draw_disabled=True)
                     self.figure.draw(renderer)
+<<<<<<< HEAD
                     bbox_inches = self.figure.get_tightbbox(
                         renderer, bbox_extra_artists=bbox_extra_artists)
                     if pad_inches is None:
                         pad_inches = rcParams['savefig.pad_inches']
                     bbox_inches = bbox_inches.padded(pad_inches)
+=======
+                    bbox_artists = kwargs.pop("bbox_extra_artists", None)
+                    bbox_inches = self.figure.get_tightbbox(renderer,
+                            bbox_extra_artists=bbox_artists)
+                    pad = kwargs.pop("pad_inches", None)
+                    if pad is None:
+                        pad = rcParams['savefig.pad_inches']
+
+                    bbox_inches = bbox_inches.padded(pad)
+>>>>>>> origin/11109-create-legend-button-images
 
                 # call adjust_bbox to save only the given area
                 restore_bbox = tight_bbox.adjust_bbox(self.figure, bbox_inches,
@@ -2339,7 +2350,7 @@ def key_press_handler(event, canvas, toolbar=None):
     grid_minor_keys = rcParams['keymap.grid_minor']
     toggle_yscale_keys = rcParams['keymap.yscale']
     toggle_xscale_keys = rcParams['keymap.xscale']
-    all_keys = dict.__getitem__(rcParams, 'keymap.all_axes')
+    all_keys = rcParams['keymap.all_axes']
 
     # toggle fullscreen mode ('f', 'ctrl + f')
     if event.key in fullscreen_keys:
@@ -2465,10 +2476,6 @@ def key_press_handler(event, canvas, toolbar=None):
         for a in canvas.figure.get_axes():
             if (event.x is not None and event.y is not None
                     and a.in_axes(event)):  # FIXME: Why only these?
-                cbook.warn_deprecated(
-                    "3.3", message="Toggling axes navigation from the "
-                    "keyboard is deprecated since %(since)s and will be "
-                    "removed %(removal)s.")
                 a.set_navigate(True)
     # enable navigation only for axes with this index (if such an axes exist,
     # otherwise do nothing)
@@ -2478,10 +2485,6 @@ def key_press_handler(event, canvas, toolbar=None):
             for i, a in enumerate(canvas.figure.get_axes()):
                 if (event.x is not None and event.y is not None
                         and a.in_axes(event)):  # FIXME: Why only these?
-                    cbook.warn_deprecated(
-                        "3.3", message="Toggling axes navigation from the "
-                        "keyboard is deprecated since %(since)s and will be "
-                        "removed %(removal)s.")
                     a.set_navigate(i == n)
 
 
@@ -2687,14 +2690,18 @@ class NavigationToolbar2:
     toolitems = (
         ('Home', 'Reset original view', 'home', 'home'),
         ('Back', 'Back to previous view', 'back', 'back'),
-        ('Forward', 'Forward to next view', 'forward', 'forward'),
+        ('Forward', 'Forward to next', 'forward', 'forward'),
         (None, None, None, None),
         ('Pan', 'Pan axes with left mouse, zoom with right', 'move', 'pan'),
         ('Zoom', 'Zoom to rectangle', 'zoom_to_rect', 'zoom'),
         ('Subplots', 'Configure subplots', 'subplots', 'configure_subplots'),
         (None, None, None, None),
         ('Save', 'Save the figure', 'filesave', 'save_figure'),
+<<<<<<< HEAD
         ('Legend', 'Toggle Legend', 'test', 'toggle_legend'),
+=======
+        ('Legend', 'Toggle Legend', 'toggle_legend', 'toggle_legend'),
+>>>>>>> origin/11109-create-legend-button-images
       )
 
     def __init__(self, canvas):
