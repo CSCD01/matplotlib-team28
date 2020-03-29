@@ -2079,22 +2079,11 @@ class FigureCanvasBase:
                             print_method, dpi=dpi, orientation=orientation),
                         draw_disabled=True)
                     self.figure.draw(renderer)
-<<<<<<< HEAD
                     bbox_inches = self.figure.get_tightbbox(
                         renderer, bbox_extra_artists=bbox_extra_artists)
                     if pad_inches is None:
                         pad_inches = rcParams['savefig.pad_inches']
                     bbox_inches = bbox_inches.padded(pad_inches)
-=======
-                    bbox_artists = kwargs.pop("bbox_extra_artists", None)
-                    bbox_inches = self.figure.get_tightbbox(renderer,
-                            bbox_extra_artists=bbox_artists)
-                    pad = kwargs.pop("pad_inches", None)
-                    if pad is None:
-                        pad = rcParams['savefig.pad_inches']
-
-                    bbox_inches = bbox_inches.padded(pad)
->>>>>>> origin/11109-create-legend-button-images
 
                 # call adjust_bbox to save only the given area
                 restore_bbox = tight_bbox.adjust_bbox(self.figure, bbox_inches,
@@ -2697,11 +2686,7 @@ class NavigationToolbar2:
         ('Subplots', 'Configure subplots', 'subplots', 'configure_subplots'),
         (None, None, None, None),
         ('Save', 'Save the figure', 'filesave', 'save_figure'),
-<<<<<<< HEAD
-        ('Legend', 'Toggle Legend', 'test', 'toggle_legend'),
-=======
         ('Legend', 'Toggle Legend', 'toggle_legend', 'toggle_legend'),
->>>>>>> origin/11109-create-legend-button-images
       )
 
     def __init__(self, canvas):
@@ -2725,7 +2710,14 @@ class NavigationToolbar2:
         self.set_history_buttons()
 
     def toggle_legend(self):
-        print(self.canvas.figure.get_axes()[0])
+        ax = self.canvas.figure.get_axes()[0]
+        if (ax.get_legend() is not None):
+            legend = ax.get_legend()
+            if (legend.get_visible()):
+                legend.set_visible(False)
+            else:
+                legend.set_visible(True)
+        self.draw()
 
     def set_message(self, s):
         """Display a message on toolbar or in status bar."""
