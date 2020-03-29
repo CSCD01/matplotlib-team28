@@ -24,6 +24,7 @@ import re
 
 import numpy as np
 
+import matplotlib as mpl
 from matplotlib import animation, cbook
 from matplotlib.cbook import ls_mapper
 from matplotlib.fontconfig_pattern import parse_fontconfig_pattern
@@ -139,7 +140,6 @@ def validate_bool(b):
         raise ValueError('Could not convert "%s" to bool' % b)
 
 
-@cbook.deprecated("3.3")
 def validate_bool_maybe_none(b):
     """Convert b to ``bool`` or raise, passing through *None*."""
     if isinstance(b, str):
@@ -171,8 +171,8 @@ def _validate_tex_preamble(s):
             return '\n'.join(s)
         else:
             raise TypeError
-    except TypeError as e:
-        raise ValueError('Could not convert "%s" to string' % s) from e
+    except TypeError:
+        raise ValueError('Could not convert "%s" to string' % s)
 
 
 def validate_axisbelow(s):
@@ -180,14 +180,8 @@ def validate_axisbelow(s):
         return validate_bool(s)
     except ValueError:
         if isinstance(s, str):
-            if s == 'line':
-                return 'line'
-            if s.lower().startswith('line'):
-                cbook.warn_deprecated(
-                    "3.3", message=f"Support for setting axes.axisbelow to "
-                    f"{s!r} to mean 'line' is deprecated since %(since)s and "
-                    f"will be removed in %(removal)s; set it to 'line' "
-                    "instead.")
+            s = s.lower()
+            if s.startswith('line'):
                 return 'line'
     raise ValueError('%s cannot be interpreted as'
                      ' True, False, or "line"' % s)
@@ -199,9 +193,9 @@ def validate_dpi(s):
         return s
     try:
         return float(s)
-    except ValueError as e:
-        raise ValueError(f'{s!r} is not string "figure" and '
-                         f'could not convert {s!r} to float') from e
+    except ValueError:
+        raise ValueError('"%s" is not string "figure" or'
+            ' could not convert "%s" to float' % (s, s))
 
 
 def _make_type_validator(cls, *, allow_none=False):
@@ -216,8 +210,8 @@ def _make_type_validator(cls, *, allow_none=False):
             return None
         try:
             return cls(s)
-        except ValueError as e:
-            raise ValueError(f'Could not convert {s!r} to {cls.__name__}') from e
+        except ValueError:
+            raise ValueError(f'Could not convert {s!r} to {cls.__name__}')
 
     validator.__name__ = f"validate_{cls.__name__}"
     if allow_none:
@@ -251,9 +245,9 @@ def validate_fonttype(s):
     except ValueError:
         try:
             return fonttypes[s.lower()]
-        except KeyError as e:
+        except KeyError:
             raise ValueError(
-                'Supported Postscript/PDF font types are %s' % list(fonttypes)) from e
+                'Supported Postscript/PDF font types are %s' % list(fonttypes))
     else:
         if fonttype not in fonttypes.values():
             raise ValueError(
@@ -297,9 +291,9 @@ def _make_nseq_validator(cls, n=None, allow_none=False):
         try:
             return [cls(val) if not allow_none or val is not None else val
                     for val in s]
-        except ValueError as e:
+        except ValueError:
             raise ValueError(
-                f'Could not convert all entries to {cls.__name__}s') from e
+                f'Could not convert all entries to {cls.__name__}s')
 
     return validator
 
@@ -322,9 +316,18 @@ def validate_color_or_auto(s):
 
 
 def validate_color_for_prop_cycle(s):
-    # N-th color cycle syntax can't go into the color cycle.
-    if isinstance(s, str) and re.match("^C[0-9]$", s):
-        raise ValueError(f"Cannot put cycle reference ({s!r}) in prop_cycler")
+    # Special-case the N-th color cycle syntax, this obviously can not
+    # go in the color cycle.
+    if isinstance(s, bytes):
+        match = re.match(b'^C[0-9]$', s)
+        if match is not None:
+            raise ValueError('Can not put cycle reference ({cn!r}) in '
+                             'prop_cycler'.format(cn=s))
+    elif isinstance(s, str):
+        match = re.match('^C[0-9]$', s)
+        if match is not None:
+            raise ValueError('Can not put cycle reference ({cn!r}) in '
+                             'prop_cycler'.format(cn=s))
     return validate_color(s)
 
 
@@ -364,8 +367,8 @@ def validate_aspect(s):
         return s
     try:
         return float(s)
-    except ValueError as e:
-        raise ValueError('not a valid aspect specification') from e
+    except ValueError:
+        raise ValueError('not a valid aspect specification')
 
 
 def validate_fontsize_None(s):
@@ -384,9 +387,9 @@ def validate_fontsize(s):
         return s
     try:
         return float(s)
-    except ValueError as e:
+    except ValueError:
         raise ValueError("%s is not a valid font size. Valid font sizes "
-                         "are %s." % (s, ", ".join(fontsizes))) from e
+                         "are %s." % (s, ", ".join(fontsizes)))
 
 
 validate_fontsizelist = _listify_validator(validate_fontsize)
@@ -401,44 +404,13 @@ def validate_fontweight(s):
         return s
     try:
         return int(s)
-    except (ValueError, TypeError) as e:
-        raise ValueError(f'{s} is not a valid font weight.') from e
+    except (ValueError, TypeError):
+        raise ValueError(f'{s} is not a valid font weight.')
 
 
 def validate_font_properties(s):
     parse_fontconfig_pattern(s)
     return s
-
-
-def _validate_mathtext_fallback_to_cm(b):
-    """
-    Temporary validate for fallback_to_cm, while deprecated
-
-    """
-    if isinstance(b, str):
-        b = b.lower()
-    if b is None or b == 'none':
-        return None
-    else:
-        cbook.warn_deprecated(
-            "3.3", message="Support for setting the 'mathtext.fallback_to_cm' rcParam "
-            "is deprecated since %(since)s and will be removed "
-            "%(removal)s; use 'mathtext.fallback : 'cm' instead.")
-        return validate_bool_maybe_none(b)
-
-
-def _validate_mathtext_fallback(s):
-    _fallback_fonts = ['cm', 'stix', 'stixsans']
-    if isinstance(s, str):
-        s = s.lower()
-    if s is None or s == 'none':
-        return None
-    elif s.lower() in _fallback_fonts:
-        return s
-    else:
-        raise ValueError(f"{s} is not a valid fallback font name. Valid fallback "
-                         f"font names are {','.join(_fallback_fonts)}. Passing "
-                         f"'None' will turn fallback off.")
 
 
 validate_fontset = ValidateInStrings(
@@ -469,9 +441,9 @@ def validate_whiskers(s):
             try:
                 v = float(s)
                 return v
-            except ValueError as e:
+            except ValueError:
                 raise ValueError("Not a valid whisker value ['range', float, "
-                                 "(float, float)]") from e
+                                 "(float, float)]")
 
 
 @cbook.deprecated("3.2")
@@ -515,8 +487,24 @@ def validate_ps_distiller(s):
         s = s.lower()
     if s in ('none', None, 'false', False):
         return None
+    elif s in ('ghostscript', 'xpdf'):
+        try:
+            mpl._get_executable_info("gs")
+        except mpl.ExecutableNotFoundError:
+            _log.warning("Setting rcParams['ps.usedistiller'] requires "
+                         "ghostscript.")
+            return None
+        if s == "xpdf":
+            try:
+                mpl._get_executable_info("pdftops")
+            except mpl.ExecutableNotFoundError:
+                _log.warning("Setting rcParams['ps.usedistiller'] to 'xpdf' "
+                             "requires xpdf.")
+                return None
+        return s
     else:
-        return ValidateInStrings('ps.usedistiller', ['ghostscript', 'xpdf'])(s)
+        raise ValueError('matplotlibrc ps.usedistiller must either be none, '
+                         'ghostscript or xpdf')
 
 
 # A validator dedicated to the named line styles, based on the items in
@@ -554,18 +542,12 @@ def _validate_linestyle(ls):
             and _is_iterable_not_string_like(ls[1])
             and len(ls[1]) % 2 == 0
             and all(isinstance(elem, Number) for elem in ls[1])):
-        if ls[0] is None:
-            cbook.warn_deprecated(
-                "3.3", message="Passing the dash offset as None is deprecated "
-                "since %(since)s and support for it will be removed "
-                "%(removal)s; pass it as zero instead.")
-            ls = (0, ls[1])
         return ls
     # For backcompat: (on, off, on, off, ...); the offset is implicitly None.
     if (_is_iterable_not_string_like(ls)
             and len(ls) % 2 == 0
             and all(isinstance(elem, Number) for elem in ls)):
-        return (0, ls)
+        return (None, ls)
     raise ValueError(f"linestyle {ls!r} is not a valid on-off ink sequence.")
 
 
@@ -664,13 +646,7 @@ validate_svg_fonttype = ValidateInStrings(
     'svg.fonttype', ['none', 'path'], _deprecated_since="3.3")
 
 
-@cbook.deprecated("3.3")
 def validate_hinting(s):
-    return _validate_hinting(s)
-
-
-# Replace by plain list in _prop_validators after deprecation period.
-def _validate_hinting(s):
     if s in (True, False):
         cbook.warn_deprecated(
             "3.2", message="Support for setting the text.hinting rcParam to "
@@ -687,7 +663,6 @@ validate_pgf_texsystem = ValidateInStrings(
     _deprecated_since="3.3")
 
 
-@cbook.deprecated("3.3")
 def validate_movie_writer(s):
     # writers.list() would only list actually available writers, but
     # FFMpeg.isAvailable is slow and not worth paying for at every import.
@@ -698,13 +673,14 @@ def validate_movie_writer(s):
                          f"{sorted(animation.writers._registered)}")
 
 
-validate_movie_frame_fmt = ValidateInStrings(
-    'animation.frame_format', ['png', 'jpeg', 'tiff', 'raw', 'rgba'],
-    _deprecated_since="3.3")
+validate_movie_frame_fmt = ValidateInStrings('animation.frame_format',
+    ['png', 'jpeg', 'tiff', 'raw', 'rgba'], _deprecated_since="3.3")
+
 validate_axis_locator = ValidateInStrings(
     'major', ['minor', 'both', 'major'], _deprecated_since="3.3")
-validate_movie_html_fmt = ValidateInStrings(
-    'animation.html', ['html5', 'jshtml', 'none'], _deprecated_since="3.3")
+
+validate_movie_html_fmt = ValidateInStrings('animation.html',
+    ['html5', 'jshtml', 'none'], _deprecated_since="3.3")
 
 
 def validate_bbox(s):
@@ -726,10 +702,13 @@ def validate_sketch(s):
         s = s.lower()
     if s == 'none' or s is None:
         return None
-    try:
-        return tuple(validate_nseq_float(3)(s))
-    except ValueError:
-        raise ValueError("Expected a (scale, length, randomness) triplet")
+    if isinstance(s, str):
+        result = tuple([float(v.strip()) for v in s.split(',')])
+    elif isinstance(s, (list, tuple)):
+        result = tuple([float(v) for v in s])
+    if len(result) != 3:
+        raise ValueError("path.sketch must be a tuple (scale, length, randomness)")
+    return result
 
 
 def _validate_greaterequal0_lessthan1(s):
@@ -919,7 +898,7 @@ def validate_cycler(s):
             s = eval(s, {'cycler': cycler, '__builtins__': {}})
         except BaseException as e:
             raise ValueError("'%s' is not a valid cycler construction: %s" %
-                             (s, e)) from e
+                             (s, e))
     # Should make sure what comes from the above eval()
     # is a Cycler object.
     if isinstance(s, Cycler):
@@ -992,14 +971,13 @@ def validate_animation_writer_path(p):
     return p
 
 
-@cbook.deprecated("3.3")
 def validate_webagg_address(s):
     if s is not None:
         import socket
         try:
             socket.inet_aton(s)
-        except socket.error as e:
-            raise ValueError("'webagg.address' is not a valid IP address") from e
+        except socket.error:
+            raise ValueError("'webagg.address' is not a valid IP address")
         return s
     raise ValueError("'webagg.address' is not a valid IP address")
 
@@ -1027,7 +1005,7 @@ defaultParams = {
     'backend':           [_auto_backend_sentinel, validate_backend],
     'backend_fallback':  [True, validate_bool],
     'webagg.port':       [8988, validate_int],
-    'webagg.address':    ['127.0.0.1', validate_string],
+    'webagg.address':    ['127.0.0.1', validate_webagg_address],
     'webagg.open_in_browser': [True, validate_bool],
     'webagg.port_retries': [50, validate_int],
     'toolbar':           ['toolbar2', _ignorecase(['none', 'toolbar2', 'toolmanager'])],
@@ -1156,7 +1134,7 @@ defaultParams = {
     'text.usetex':         [False, validate_bool],
     'text.latex.preamble': ['', _validate_tex_preamble],
     'text.latex.preview':  [False, validate_bool],
-    'text.hinting':        ['auto', _validate_hinting],
+    'text.hinting':        ['auto', validate_hinting],
     'text.hinting_factor': [8, validate_int],
     'text.kerning_factor': [0, validate_int],
     'text.antialiased':    [True, validate_bool],
@@ -1173,8 +1151,7 @@ defaultParams = {
     'mathtext.default':        [
         'it',
         ['rm', 'cal', 'it', 'tt', 'sf', 'bf', 'default', 'bb', 'frak', 'scr', 'regular']],
-    'mathtext.fallback_to_cm': [None, _validate_mathtext_fallback_to_cm],
-    'mathtext.fallback':       ['cm', _validate_mathtext_fallback],
+    'mathtext.fallback_to_cm': [True, validate_bool],
 
     'image.aspect':        ['equal', validate_aspect],  # equal, auto, a number
     'image.interpolation': ['antialiased', validate_string],
@@ -1470,13 +1447,14 @@ defaultParams = {
     'keymap.all_axes':     [['a'], validate_stringlist],
     'keymap.help':         [['f1'], validate_stringlist],
     'keymap.copy':         [['ctrl+c', 'cmd+c'], validate_stringlist],
+    'keymap.legend':       [['t'], validate_stringlist],
 
     # Animation settings
     'animation.html':         ['none', ['html5', 'jshtml', 'none']],
     # Limit, in MB, of size of base64 encoded animation in HTML
     # (i.e. IPython notebook)
     'animation.embed_limit':  [20, validate_float],
-    'animation.writer':       ['ffmpeg', validate_string],
+    'animation.writer':       ['ffmpeg', validate_movie_writer],
     'animation.codec':        ['h264', validate_string],
     'animation.bitrate':      [-1, validate_int],
     # Controls image format when frames are written to disk

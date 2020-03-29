@@ -711,7 +711,7 @@ class GraphicsContextBase:
         self._capstyle = 'butt'
         self._cliprect = None
         self._clippath = None
-        self._dashes = 0, None
+        self._dashes = None, None
         self._joinstyle = 'round'
         self._linestyle = 'solid'
         self._linewidth = 1
@@ -1520,8 +1520,8 @@ def _is_non_interactive_terminal_ipython(ip):
     interactive), we do.
     """
     return (hasattr(ip, 'parent')
-            and (ip.parent is not None)
-            and getattr(ip.parent, 'interact', None) is False)
+        and (ip.parent is not None)
+        and getattr(ip.parent, 'interact', None) is False)
 
 
 class FigureCanvasBase:
@@ -2061,8 +2061,8 @@ class FigureCanvasBase:
                             print_method, dpi=dpi, orientation=orientation))
                     self.figure.draw(renderer)
                     bbox_artists = kwargs.pop("bbox_extra_artists", None)
-                    bbox_inches = self.figure.get_tightbbox(
-                        renderer, bbox_extra_artists=bbox_artists)
+                    bbox_inches = self.figure.get_tightbbox(renderer,
+                            bbox_extra_artists=bbox_artists)
                     pad = kwargs.pop("pad_inches", None)
                     if pad is None:
                         pad = rcParams['savefig.pad_inches']
@@ -2316,12 +2316,13 @@ def key_press_handler(event, canvas, toolbar=None):
     pan_keys = rcParams['keymap.pan']
     zoom_keys = rcParams['keymap.zoom']
     save_keys = rcParams['keymap.save']
+    legend_keys = rcParams['keymap.legend']
     quit_keys = rcParams['keymap.quit']
     grid_keys = rcParams['keymap.grid']
     grid_minor_keys = rcParams['keymap.grid_minor']
     toggle_yscale_keys = rcParams['keymap.yscale']
     toggle_xscale_keys = rcParams['keymap.xscale']
-    all_keys = dict.__getitem__(rcParams, 'keymap.all_axes')
+    all_keys = rcParams['keymap.all_axes']
 
     # toggle fullscreen mode ('f', 'ctrl + f')
     if event.key in fullscreen_keys:
@@ -2356,6 +2357,8 @@ def key_press_handler(event, canvas, toolbar=None):
         # saving current figure (default key 's')
         elif event.key in save_keys:
             toolbar.save_figure()
+        elif event.key in legend_keys:
+            toolbar.toggle_legend()
 
     if event.inaxes is None:
         return
@@ -2443,10 +2446,6 @@ def key_press_handler(event, canvas, toolbar=None):
         for a in canvas.figure.get_axes():
             if (event.x is not None and event.y is not None
                     and a.in_axes(event)):  # FIXME: Why only these?
-                cbook.warn_deprecated(
-                    "3.3", message="Toggling axes navigation from the "
-                    "keyboard is deprecated since %(since)s and will be "
-                    "removed %(removal)s.")
                 a.set_navigate(True)
     # enable navigation only for axes with this index (if such an axes exist,
     # otherwise do nothing)
@@ -2456,10 +2455,6 @@ def key_press_handler(event, canvas, toolbar=None):
             for i, a in enumerate(canvas.figure.get_axes()):
                 if (event.x is not None and event.y is not None
                         and a.in_axes(event)):  # FIXME: Why only these?
-                    cbook.warn_deprecated(
-                        "3.3", message="Toggling axes navigation from the "
-                        "keyboard is deprecated since %(since)s and will be "
-                        "removed %(removal)s.")
                     a.set_navigate(i == n)
 
 
@@ -2665,13 +2660,14 @@ class NavigationToolbar2:
     toolitems = (
         ('Home', 'Reset original view', 'home', 'home'),
         ('Back', 'Back to previous view', 'back', 'back'),
-        ('Forward', 'Forward to next view', 'forward', 'forward'),
+        ('Forward', 'Forward to next', 'forward', 'forward'),
         (None, None, None, None),
         ('Pan', 'Pan axes with left mouse, zoom with right', 'move', 'pan'),
         ('Zoom', 'Zoom to rectangle', 'zoom_to_rect', 'zoom'),
         ('Subplots', 'Configure subplots', 'subplots', 'configure_subplots'),
         (None, None, None, None),
         ('Save', 'Save the figure', 'filesave', 'save_figure'),
+        ('Legend', 'Toggle Legend', 'toggle_legend', 'toggle_legend'),
       )
 
     def __init__(self, canvas):
@@ -2695,6 +2691,9 @@ class NavigationToolbar2:
 
         self.mode = ''  # a mode string for the status bar
         self.set_history_buttons()
+
+    def toggle_legend(self):
+        print(self.canvas.figure.get_axes()[0])
 
     def set_message(self, s):
         """Display a message on toolbar or in status bar."""
