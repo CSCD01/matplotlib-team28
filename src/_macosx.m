@@ -878,7 +878,7 @@ static PyTypeObject FigureManagerType = {
     NSButton* zoombutton;
 }
 - (NavigationToolbar2Handler*)initWithToolbar:(PyObject*)toolbar;
-- (void)installCallbacks:(SEL[7])actions forButtons: (NSButton*[7])buttons;
+- (void)installCallbacks:(SEL[8])actions forButtons: (NSButton*[8])buttons;
 - (void)home:(id)sender;
 - (void)back:(id)sender;
 - (void)forward:(id)sender;
@@ -886,6 +886,7 @@ static PyTypeObject FigureManagerType = {
 - (void)zoom:(id)sender;
 - (void)configure_subplots:(id)sender;
 - (void)save_figure:(id)sender;
+- (void)toggle_legend:(id)sender;
 @end
 
 typedef struct {
@@ -903,10 +904,10 @@ typedef struct {
     return self;
 }
 
-- (void)installCallbacks:(SEL[7])actions forButtons: (NSButton*[7])buttons
+- (void)installCallbacks:(SEL[8])actions forButtons: (NSButton*[8])buttons
 {
     int i;
-    for (i = 0; i < 7; i++)
+    for (i = 0; i < 8; i++)
     {
         SEL action = actions[i];
         NSButton* button = buttons[i];
@@ -1067,7 +1068,21 @@ typedef struct {
         PyErr_Print();
     PyGILState_Release(gstate);
 }
+
+-(void)toggle_legend:(id)sender
+{   PyObject* result;
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+    result = PyObject_CallMethod(toolbar, "toggle_legend", "");
+    if(result)
+        Py_DECREF(result);
+    else
+        PyErr_Print();
+    PyGILState_Release(gstate);
+}
 @end
+
+
 
 static PyObject*
 NavigationToolbar2_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -1140,37 +1155,41 @@ NavigationToolbar2_init(NavigationToolbar2 *self, PyObject *args, PyObject *kwds
     NSString* dir = [NSString stringWithCString: basedir
                                        encoding: NSASCIIStringEncoding];
 
-    NSButton* buttons[7];
+    NSButton* buttons[8];
 
-    NSString* images[7] = {@"home.pdf",
+    NSString* images[8] = {@"home.pdf",
                            @"back.pdf",
                            @"forward.pdf",
                            @"move.pdf",
                            @"zoom_to_rect.pdf",
                            @"subplots.pdf",
-                           @"filesave.pdf"};
+                           @"filesave.pdf",
+                           @"toggle_legend.pdf"};
 
-    NSString* tooltips[7] = {@"Reset original view",
+    NSString* tooltips[8] = {@"Reset original view",
                              @"Back to  previous view",
                              @"Forward to next view",
                              @"Pan axes with left mouse, zoom with right",
                              @"Zoom to rectangle",
                              @"Configure subplots",
-                             @"Save the figure"};
+                             @"Save the figure",
+                             @"Toggle legend"};
 
-    SEL actions[7] = {@selector(home:),
+    SEL actions[8] = {@selector(home:),
                       @selector(back:),
                       @selector(forward:),
                       @selector(pan:),
                       @selector(zoom:),
                       @selector(configure_subplots:),
-                      @selector(save_figure:)};
+                      @selector(save_figure:),
+                      @selector(toggle_legend:)};
 
-    NSButtonType buttontypes[7] = {NSMomentaryLightButton,
+    NSButtonType buttontypes[8] = {NSMomentaryLightButton,
                                    NSMomentaryLightButton,
                                    NSMomentaryLightButton,
                                    NSPushOnPushOffButton,
                                    NSPushOnPushOffButton,
+                                   NSMomentaryLightButton,
                                    NSMomentaryLightButton,
                                    NSMomentaryLightButton};
 
@@ -1190,7 +1209,7 @@ NavigationToolbar2_init(NavigationToolbar2 *self, PyObject *args, PyObject *kwds
     rect.origin.x = gap;
     rect.origin.y = 0.5*(height - rect.size.height);
 
-    for (i = 0; i < 7; i++)
+    for (i = 0; i < 8; i++)
     {
         NSString* filename = [dir stringByAppendingPathComponent: images[i]];
         NSImage* image = [[NSImage alloc] initWithContentsOfFile: filename];
