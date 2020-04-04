@@ -237,7 +237,7 @@ class RendererWx(RendererBase):
             w = self.width
             h = self.height
         rows, cols = im.shape[:2]
-        bitmap = wx.Bitmap.FromBufferRGBA(cols, rows, im.tostring())
+        bitmap = wx.Bitmap.FromBufferRGBA(cols, rows, im.tobytes())
         gc.select()
         gc.gfx_ctx.DrawBitmap(bitmap, int(l), int(self.height - b),
                               int(w), int(-h))
@@ -1344,9 +1344,8 @@ class ToolbarWx(ToolContainerBase, wx.ToolBar):
         self._toolitems = {}
         self._groups = {}
 
-    def add_toolitem(
-        self, name, group, position, image_file, description, toggle):
-
+    def add_toolitem(self, name, group, position, image_file, description,
+                     toggle):
         before, group = self._add_to_group(group, name, position)
         idx = self.GetToolPos(before.Id)
         if image_file:

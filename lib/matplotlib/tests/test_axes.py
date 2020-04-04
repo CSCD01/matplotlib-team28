@@ -3068,6 +3068,16 @@ def test_violinplot_single_list_quantiles(fig_test, fig_ref):
     ax.violinplot(data, quantiles=[[0.1, 0.3, 0.9]])
 
 
+@check_figures_equal(extensions=["png"])
+def test_violinplot_pandas_series(fig_test, fig_ref, pd):
+    np.random.seed(110433579)
+    s1 = pd.Series(np.random.normal(size=7), index=[9, 8, 7, 6, 5, 4, 3])
+    s2 = pd.Series(np.random.normal(size=9), index=list('ABCDEFGHI'))
+    s3 = pd.Series(np.random.normal(size=11))
+    fig_test.subplots().violinplot([s1, s2, s3])
+    fig_ref.subplots().violinplot([s1.values, s2.values, s3.values])
+
+
 def test_manage_xticks():
     _, ax = plt.subplots()
     ax.set_xlim(0, 4)
@@ -3838,14 +3848,16 @@ def test_empty_eventplot():
     plt.draw()
 
 
-@pytest.mark.parametrize('data, orientation', product(
-    ([[]], [[], [0, 1]], [[0, 1], []]),
-    ('_empty', 'vertical', 'horizontal', None, 'none')))
+@pytest.mark.parametrize('data', [[[]], [[], [0, 1]], [[0, 1], []]])
+@pytest.mark.parametrize(
+    'orientation', ['_empty', 'vertical', 'horizontal', None, 'none'])
 def test_eventplot_orientation(data, orientation):
     """Introduced when fixing issue #6412."""
     opts = {} if orientation == "_empty" else {'orientation': orientation}
     fig, ax = plt.subplots(1, 1)
-    ax.eventplot(data, **opts)
+    with (pytest.warns(MatplotlibDeprecationWarning)
+          if orientation in [None, 'none'] else nullcontext()):
+        ax.eventplot(data, **opts)
     plt.draw()
 
 
@@ -3919,12 +3931,36 @@ def test_axline(fig_test, fig_ref):
     ax.axline((0, 0), (1, 1))
     ax.axline((0, 0), (1, 0), color='C1')
     ax.axline((0, 0.5), (1, 0.5), color='C2')
+    # slopes
+    ax.axline((-0.7, -0.5), slope=0, color='C3')
+    ax.axline((1, -0.5), slope=-0.5, color='C4')
+    ax.axline((-0.5, 1), slope=float('inf'), color='C5')
 
     ax = fig_ref.subplots()
     ax.set(xlim=(-1, 1), ylim=(-1, 1))
     ax.plot([-1, 1], [-1, 1])
     ax.axhline(0, color='C1')
     ax.axhline(0.5, color='C2')
+    # slopes
+    ax.axhline(-0.5, color='C3')
+    ax.plot([-1, 1], [0.5, -0.5], color='C4')
+    ax.axvline(-0.5, color='C5')
+
+
+def test_axline_args():
+    """Exactly one of *xy2* and *slope* must be specified."""
+    fig, ax = plt.subplots()
+    with pytest.raises(TypeError):
+        ax.axline((0, 0))  # missing second parameter
+    with pytest.raises(TypeError):
+        ax.axline((0, 0), (1, 1), slope=1)  # redundant parameters
+    ax.set_xscale('log')
+    with pytest.raises(TypeError):
+        ax.axline((0, 0), slope=1)
+    ax.set_xscale('linear')
+    ax.set_yscale('log')
+    with pytest.raises(TypeError):
+        ax.axline((0, 0), slope=1)
 
 
 @image_comparison(['vlines_basic', 'vlines_with_nan', 'vlines_masked'],
@@ -4197,6 +4233,13 @@ def test_specgram_angle():
                     ax.specgram(y, NFFT=NFFT, Fs=Fs, noverlap=noverlap,
                                 pad_to=pad_to, sides=sides, mode=mode,
                                 scale="dB")
+
+
+def test_specgram_fs_none():
+    """Test axes.specgram when Fs is None, should not throw error."""
+    spec, freqs, t, im = plt.specgram(np.ones(300), Fs=None)
+    xmin, xmax, freq0, freq1 = im.get_extent()
+    assert xmin == 32 and xmax == 96
 
 
 @image_comparison(

@@ -228,8 +228,7 @@ class BboxBase(TransformNode):
             if isinstance(points, np.ma.MaskedArray):
                 cbook._warn_external("Bbox bounds are a masked array.")
             points = np.asarray(points)
-            if (points[1, 0] - points[0, 0] == 0 or
-                points[1, 1] - points[0, 1] == 0):
+            if any((points[1, :] - points[0, :]) == 0):
                 cbook._warn_external("Singular Bbox.")
 
     def frozen(self):
@@ -474,6 +473,7 @@ class BboxBase(TransformNode):
             [pts[0], [pts[0, 0], pts[1, 1]], [pts[1, 0], pts[0, 1]]]))
         return Bbox([ll, [lr[0], ul[1]]])
 
+    @cbook.deprecated("3.3", alternative="transformed(transform.inverted())")
     def inverse_transformed(self, transform):
         """
         Construct a `Bbox` by statically transforming this one by the inverse
@@ -2170,8 +2170,8 @@ def blended_transform_factory(x_transform, y_transform):
     A faster version of the blended transform is returned for the case
     where both child transforms are affine.
     """
-    if (isinstance(x_transform, Affine2DBase)
-        and isinstance(y_transform, Affine2DBase)):
+    if (isinstance(x_transform, Affine2DBase) and
+            isinstance(y_transform, Affine2DBase)):
         return BlendedAffine2D(x_transform, y_transform)
     return BlendedGenericTransform(x_transform, y_transform)
 
@@ -2222,10 +2222,9 @@ class CompositeGenericTransform(Transform):
         # either:
         # (a) the left hand transform is non affine
         # (b) it is the left hand node which has triggered the invalidation
-        if value == Transform.INVALID_AFFINE \
-            and not self._b.is_affine \
-            and (not self._a.is_affine or invalidating_node is self._a):
-
+        if (value == Transform.INVALID_AFFINE and
+                not self._b.is_affine and
+                (not self._a.is_affine or invalidating_node is self._a)):
             value = Transform.INVALID
 
         Transform._invalidate_internal(self, value=value,
@@ -2566,7 +2565,7 @@ class TransformedPath(TransformNode):
         # only recompute if the invalidation includes the non_affine part of
         # the transform
         if (self._invalid & self.INVALID_NON_AFFINE == self.INVALID_NON_AFFINE
-            or self._transformed_path is None):
+                or self._transformed_path is None):
             self._transformed_path = \
                 self._transform.transform_path_non_affine(self._path)
             self._transformed_points = \

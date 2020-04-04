@@ -720,7 +720,8 @@ class Rectangle(Patch):
         Parameters
         ----------
         xy : (float, float)
-            The bottom and left rectangle coordinates
+            The rectangle extends from xy[0] to xy[0] + width in
+            x-direction and from xy[1] to xy[1] + height in y-direction.
         width : float
             Rectangle width
         height : float
@@ -1072,8 +1073,6 @@ class Polygon(Patch):
         self._path = Path(xy, closed=self._closed)
         self.stale = True
 
-    _get_xy = get_xy
-    _set_xy = set_xy
     xy = property(get_xy, set_xy,
                   doc='The vertices of the path as (N, 2) numpy array.')
 

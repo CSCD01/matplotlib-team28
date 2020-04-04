@@ -101,7 +101,9 @@ def test__EventCollection__add_positions():
     splt, coll, props = generate_EventCollection_plot()
     new_positions = np.hstack([props['positions'],
                                props['extra_positions'][0]])
+    coll.switch_orientation()  # Test adding in the vertical orientation, too.
     coll.add_positions(props['extra_positions'][0])
+    coll.switch_orientation()
     np.testing.assert_array_equal(new_positions, coll.get_positions())
     check_segments(coll,
                    new_positions,
@@ -614,3 +616,17 @@ def test_collection_set_verts_array():
     for ap, lp in zip(col_arr._paths, col_list._paths):
         assert np.array_equal(ap._vertices, lp._vertices)
         assert np.array_equal(ap._codes, lp._codes)
+
+
+def test_blended_collection_autolim():
+    a = [1, 2, 4]
+    height = .2
+
+    xy_pairs = np.column_stack([np.repeat(a, 2), np.tile([0, height], len(a))])
+    line_segs = xy_pairs.reshape([len(a), 2, 2])
+
+    f, ax = plt.subplots()
+    trans = mtransforms.blended_transform_factory(ax.transData, ax.transAxes)
+    ax.add_collection(LineCollection(line_segs, transform=trans))
+    ax.autoscale_view(scalex=True, scaley=False)
+    np.testing.assert_allclose(ax.get_xlim(), [1., 4.])

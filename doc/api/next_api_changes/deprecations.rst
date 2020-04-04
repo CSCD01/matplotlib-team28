@@ -402,3 +402,23 @@ The qt4agg and qt4cairo backends are deprecated.
 ``RendererWx.get_gc``
 ~~~~~~~~~~~~~~~~~~~~~
 This method is deprecated.  Access the ``gc`` attribute directly instead.
+
+*add_all* parameter in ``axes_grid``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The *add_all* parameter of `.axes_grid1.axes_grid.Grid`,
+`.axes_grid1.axes_grid.ImageGrid`, `.axes_grid1.axes_rgb.make_rgb_axes` and
+`.axes_grid1.axes_rgb.RGBAxes` is deprecated.  Axes are now always added to the
+parent figure, though they can be later removed with ``ax.remove()``.
+
+``BboxBase.inverse_transformed``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``.BboxBase.inverse_transformed`` is deprecated (call `.BboxBase.transformed`
+on the `~.Transform.inverted()` transform instead).
+
+*orientation* of ``eventplot()`` and `.EventCollection`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Setting the *orientation* of an ``eventplot()`` or `.EventCollection` to "none"
+or None is deprecated; set it to "horizontal" instead.  Moreover, the two
+orientations ("horizontal" and "vertical") will become case-sensitive in the
+future.

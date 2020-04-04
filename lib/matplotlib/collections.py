@@ -197,7 +197,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
         transform = self.get_transform()
         transOffset = self.get_offset_transform()
         if (not self._offsetsNone and
-            not transOffset.contains_branch(transData)):
+                not transOffset.contains_branch(transData)):
             # if there are offsets but in some coords other than data,
             # then don't use them for autoscaling.
             return transforms.Bbox.null()
@@ -219,7 +219,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
             # get_path_collection_extents handles nan but not masked arrays
 
         if len(paths) and len(offsets):
-            if transform.contains_branch(transData):
+            if any(transform.contains_branch_seperately(transData)):
                 # collections that are just in data units (like quiver)
                 # can properly have the axes limits set by their shape +
                 # offset.  LineCollections that have no offsets can
@@ -227,7 +227,7 @@ class Collection(artist.Artist, cm.ScalarMappable):
                 result = mpath.get_path_collection_extents(
                     transform.get_affine(), paths, self.get_transforms(),
                     offsets, transOffset.get_affine().frozen())
-                return result.inverse_transformed(transData)
+                return result.transformed(transData.inverted())
             if not self._offsetsNone:
                 # this is for collections that have their paths (shapes)
                 # in physical, axes-relative, or figure-relative units
@@ -329,11 +329,11 @@ class Collection(artist.Artist, cm.ScalarMappable):
         edgecolors = self.get_edgecolor()
         do_single_path_optimization = False
         if (len(paths) == 1 and len(trans) <= 1 and
-            len(facecolors) == 1 and len(edgecolors) == 1 and
-            len(self._linewidths) == 1 and
-            all(ls[1] is None for ls in self._linestyles) and
-            len(self._antialiaseds) == 1 and len(self._urls) == 1 and
-            self.get_hatch() is None):
+                len(facecolors) == 1 and len(edgecolors) == 1 and
+                len(self._linewidths) == 1 and
+                all(ls[1] is None for ls in self._linestyles) and
+                len(self._antialiaseds) == 1 and len(self._urls) == 1 and
+                self.get_hatch() is None):
             if len(trans):
                 combined_transform = transforms.Affine2D(trans[0]) + transform
             else:
@@ -1455,8 +1455,8 @@ class EventCollection(LineCollection):
     _edge_default = True
 
     def __init__(self,
-                 positions,     # Cannot be None.
-                 orientation=None,
+                 positions,  # Cannot be None.
+                 orientation='horizontal',
                  lineoffset=0,
                  linelength=1,
                  linewidth=None,
@@ -1471,10 +1471,9 @@ class EventCollection(LineCollection):
         positions : 1D array-like
             Each value is an event.
 
-        orientation : {None, 'horizontal', 'vertical'}, optional
+        orientation : {'horizontal', 'vertical'}, default: 'horizontal'
             The orientation of the **collection** (the event bars are along
-            the orthogonal direction). Defaults to 'horizontal' if not
-            specified or None.
+            the orthogonal direction).
 
         lineoffset : scalar, default: 0
             The offset of the center of the markers from the origin, in the
@@ -1511,42 +1510,18 @@ class EventCollection(LineCollection):
         --------
         .. plot:: gallery/lines_bars_and_markers/eventcollection_demo.py
         """
-        if positions is None:
-            raise ValueError('positions must be an array-like object')
-        # Force a copy of positions
-        positions = np.array(positions, copy=True)
-        segment = (lineoffset + linelength / 2.,
-                   lineoffset - linelength / 2.)
-        if positions.size == 0:
-            segments = []
-        elif positions.ndim > 1:
-            raise ValueError('positions cannot be an array with more than '
-                             'one dimension.')
-        elif (orientation is None or orientation.lower() == 'none' or
-              orientation.lower() == 'horizontal'):
-            positions.sort()
-            segments = [[(coord1, coord2) for coord2 in segment] for
-                        coord1 in positions]
-            self._is_horizontal = True
-        elif orientation.lower() == 'vertical':
-            positions.sort()
-            segments = [[(coord2, coord1) for coord2 in segment] for
-                        coord1 in positions]
-            self._is_horizontal = False
-        else:
-            cbook._check_in_list(['horizontal', 'vertical'],
-                                 orientation=orientation)
-
         LineCollection.__init__(self,
-                                segments,
+                                [],
                                 linewidths=linewidth,
                                 colors=color,
                                 antialiaseds=antialiased,
                                 linestyles=linestyle,
                                 **kwargs)
-
+        self._is_horizontal = True  # Initial value, may be switched below.
         self._linelength = linelength
         self._lineoffset = lineoffset
+        self.set_orientation(orientation)
+        self.set_positions(positions)
 
     def get_positions(self):
         """
@@ -1556,24 +1531,18 @@ class EventCollection(LineCollection):
         return [segment[0, pos] for segment in self.get_segments()]
 
     def set_positions(self, positions):
-        """Set the positions of the events to the specified value."""
-        if positions is None or (hasattr(positions, 'len') and
-                                 len(positions) == 0):
-            self.set_segments([])
-            return
-
+        """Set the positions of the events."""
+        if positions is None:
+            positions = []
+        if np.ndim(positions) != 1:
+            raise ValueError('positions must be one-dimensional')
         lineoffset = self.get_lineoffset()
         linelength = self.get_linelength()
-        segment = (lineoffset + linelength / 2.,
-                   lineoffset - linelength / 2.)
-        positions = np.asanyarray(positions)
-        positions.sort()
-        if self.is_horizontal():
-            segments = [[(coord1, coord2) for coord2 in segment] for
-                        coord1 in positions]
-        else:
-            segments = [[(coord2, coord1) for coord2 in segment] for
-                        coord1 in positions]
+        pos_idx = 0 if self.is_horizontal() else 1
+        segments = np.empty((len(positions), 2, 2))
+        segments[:, :, pos_idx] = np.sort(positions)[:, None]
+        segments[:, 0, 1 - pos_idx] = lineoffset + linelength / 2
+        segments[:, 1, 1 - pos_idx] = lineoffset - linelength / 2
         self.set_segments(segments)
 
     def add_positions(self, position):
@@ -1614,17 +1583,26 @@ class EventCollection(LineCollection):
 
         Parameters
         ----------
-        orientation: {'horizontal', 'vertical'} or None
-            Defaults to 'horizontal' if not specified or None.
+        orientation : {'horizontal', 'vertical'}
         """
-        if (orientation is None or orientation.lower() == 'none' or
-                orientation.lower() == 'horizontal'):
-            is_horizontal = True
-        elif orientation.lower() == 'vertical':
-            is_horizontal = False
-        else:
-            cbook._check_in_list(['horizontal', 'vertical'],
-                                 orientation=orientation)
+        try:
+            is_horizontal = cbook._check_getitem(
+                {"horizontal": True, "vertical": False},
+                orientation=orientation)
+        except ValueError:
+            if (orientation is None or orientation.lower() == "none"
+                    or orientation.lower() == "horizontal"):
+                is_horizontal = True
+            elif orientation.lower() == "vertical":
+                is_horizontal = False
+            else:
+                raise
+            normalized = "horizontal" if is_horizontal else "vertical"
+            cbook.warn_deprecated(
+                "3.3", message="Support for setting the orientation of "
+                f"EventCollection to {orientation!r} is deprecated since "
+                f"%(since)s and will be removed %(removal)s; please set it to "
+                f"{normalized!r} instead.")
         if is_horizontal == self.is_horizontal():
             return
         self.switch_orientation()
