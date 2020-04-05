@@ -154,7 +154,7 @@ mathtext.bf  : serif:bold
 mathtext.sf  : sans\-serif
 mathtext.fontset : cm # Should be 'cm' (Computer Modern), 'stix',
                       # 'stixsans' or 'custom'
-mathtext.fallback: cm  # Select fallback font from ['cm' (Computer Modern), 'stix'
+mathtext.fallback: None  # Select fallback font from ['cm' (Computer Modern), 'stix'
                        # 'stixsans'] when a symbol can not be found in one of the 
                        # custom math fonts. Select 'None' to not perform fallback
                        # and replace the missing character by a dummy.
@@ -467,6 +467,7 @@ keymap.quit : ctrl+w, cmd+w         # close the current figure
 keymap.grid : g                     # switching on/off a grid in current axes
 keymap.yscale : l                   # toggle scaling of y-axes ('log'/'linear')
 keymap.xscale : k, L                # toggle scaling of x-axes ('log'/'linear')
+keymap.legend: t                    # Show/Hide Legend
 
 ###ANIMATION settings
 animation.writer : ffmpeg         # MovieWriter 'backend' to use
